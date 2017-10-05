@@ -302,7 +302,7 @@ static void pgss_post_parse_analyze(ParseState *pstate, Query *query);
 static void pgss_ExecutorStart(QueryDesc *queryDesc, int eflags);
 static void pgss_ExecutorRun(QueryDesc *queryDesc,
 				 ScanDirection direction,
-				 long count);
+				 uint64 count);
 static void pgss_ExecutorFinish(QueryDesc *queryDesc);
 static void pgss_ExecutorEnd(QueryDesc *queryDesc);
 static void pgss_ProcessUtility(Node *parsetree, const char *queryString,
@@ -400,7 +400,12 @@ _PG_init(void)
 	 * resources in pgss_shmem_startup().
 	 */
 	RequestAddinShmemSpace(pgss_memsize());
+
+#if PG_VERSION_NUM >= 90600
+	RequestNamedLWLockTranche("pg_sslstatus", 1);
+#else
 	RequestAddinLWLocks(1);
+#endif
 
 	/*
 	 * Install hooks.
@@ -476,7 +481,11 @@ pgss_shmem_startup(void)
 	if (!found)
 	{
 		/* First time through ... */
+#if PG_VERSION_NUM >= 90600
+		pgss->lock = &(GetNamedLWLockTranche("pg_sslstatus"))->lock;
+#else
 		pgss->lock = LWLockAssign();
+#endif
 		pgss->cur_median_usage = ASSUMED_MEDIAN_INIT;
 		pgss->mean_query_len = ASSUMED_LENGTH_INIT;
 		SpinLockInit(&pgss->mutex);
@@ -961,7 +970,7 @@ pgss_ExecutorStart(QueryDesc *queryDesc, int eflags)
  * ExecutorRun hook: all we need do is track nesting depth
  */
 static void
-pgss_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, long count)
+pgss_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, uint64 count)
 {
 	nested_level++;
 	PG_TRY();
