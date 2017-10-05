@@ -32,7 +32,7 @@ In the "permissive" mode, sql_firewall checks queries as well, but
 allows to execute even not in the firewall rules. And produces
 warnings if the queries are not in the rules.
 
-
+ 
 Compatibility
 -------------
 
@@ -50,10 +50,10 @@ Installation
 
 sql_firewall can be built as a PostgreSQL extension.
 
-    $ export PATH=$PGHOME/bin:$PATH
-    $ export USE_PGXS=1
-    $ make
-    $ sudo make install
+    $ sh ./build.sh
+    $ sh ./build.sh install
+
+Then, restart the PostgreSQL service.
 
 
 Configuration
