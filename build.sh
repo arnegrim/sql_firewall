@@ -7,7 +7,8 @@
 #
 
 if [ "`lsb_release -i -s`" = "Ubuntu" ];then
-    dpkg -l build-essential > /dev/null || apt install -y build-essential
+    # dpkg -l build-essential > /dev/null || apt install -y build-essential
+    apt install -y build-essential
 fi
 
 export USE_PGXS=1
