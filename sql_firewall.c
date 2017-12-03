@@ -302,12 +302,12 @@ static void pgss_post_parse_analyze(ParseState *pstate, Query *query);
 static void pgss_ExecutorStart(QueryDesc *queryDesc, int eflags);
 static void pgss_ExecutorRun(QueryDesc *queryDesc,
 				 ScanDirection direction,
-				 uint64 count);
+				 uint64 count, bool execute_once);
 static void pgss_ExecutorFinish(QueryDesc *queryDesc);
 static void pgss_ExecutorEnd(QueryDesc *queryDesc);
-static void pgss_ProcessUtility(Node *parsetree, const char *queryString,
+static void pgss_ProcessUtility(PlannedStmt *pstmt, const char *queryString,
 					ProcessUtilityContext context, ParamListInfo params,
-					DestReceiver *dest, char *completionTag);
+					QueryEnvironment *env, DestReceiver *dest, char *completionTag);
 static uint32 pgss_hash_fn(const void *key, Size keysize);
 static int	pgss_match_fn(const void *key1, const void *key2, Size keysize);
 static uint32 pgss_hash_string(const char *str);
@@ -970,15 +970,15 @@ pgss_ExecutorStart(QueryDesc *queryDesc, int eflags)
  * ExecutorRun hook: all we need do is track nesting depth
  */
 static void
-pgss_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, uint64 count)
+pgss_ExecutorRun(QueryDesc *queryDesc, ScanDirection direction, uint64 count, bool execute_once)
 {
 	nested_level++;
 	PG_TRY();
 	{
 		if (prev_ExecutorRun)
-			prev_ExecutorRun(queryDesc, direction, count);
+			prev_ExecutorRun(queryDesc, direction, count, execute_once);
 		else
-			standard_ExecutorRun(queryDesc, direction, count);
+			standard_ExecutorRun(queryDesc, direction, count, execute_once);
 		nested_level--;
 	}
 	PG_CATCH();
@@ -1046,9 +1046,9 @@ pgss_ExecutorEnd(QueryDesc *queryDesc)
  * ProcessUtility hook
  */
 static void
-pgss_ProcessUtility(Node *parsetree, const char *queryString,
+pgss_ProcessUtility(PlannedStmt *pstmt, const char *queryString,
 					ProcessUtilityContext context, ParamListInfo params,
-					DestReceiver *dest, char *completionTag)
+					QueryEnvironment *env, DestReceiver *dest, char *completionTag)
 {
 	/*
 	 * If it's an EXECUTE statement, we don't track it and don't increment the
@@ -1065,9 +1065,9 @@ pgss_ProcessUtility(Node *parsetree, const char *queryString,
 	 * Likewise, we don't track execution of DEALLOCATE.
 	 */
 	if (pgss_enabled() &&
-		!IsA(parsetree, ExecuteStmt) &&
-		!IsA(parsetree, PrepareStmt) &&
-		!IsA(parsetree, DeallocateStmt))
+		!IsA(pstmt->utilityStmt, ExecuteStmt) &&
+		!IsA(pstmt->utilityStmt, PrepareStmt) &&
+		!IsA(pstmt->utilityStmt, DeallocateStmt))
 	{
 		instr_time	start;
 		instr_time	duration;
@@ -1083,13 +1083,13 @@ pgss_ProcessUtility(Node *parsetree, const char *queryString,
 		PG_TRY();
 		{
 			if (prev_ProcessUtility)
-				prev_ProcessUtility(parsetree, queryString,
+				prev_ProcessUtility(pstmt, queryString,
 									context, params,
-									dest, completionTag);
+									env, dest, completionTag);
 			else
-				standard_ProcessUtility(parsetree, queryString,
+				standard_ProcessUtility(pstmt, queryString,
 										context, params,
-										dest, completionTag);
+										env, dest, completionTag);
 			nested_level--;
 		}
 		PG_CATCH();
@@ -1154,13 +1154,13 @@ pgss_ProcessUtility(Node *parsetree, const char *queryString,
 	else
 	{
 		if (prev_ProcessUtility)
-			prev_ProcessUtility(parsetree, queryString,
+			prev_ProcessUtility(pstmt, queryString,
 								context, params,
-								dest, completionTag);
+								env, dest, completionTag);
 		else
-			standard_ProcessUtility(parsetree, queryString,
+			standard_ProcessUtility(pstmt, queryString,
 									context, params,
-									dest, completionTag);
+									env, dest, completionTag);
 	}
 }
 
