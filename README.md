@@ -2,6 +2,8 @@
 sql_firewall
 ============
 
+**Note: This is a fork of _poreklo/sql_firewall_, but which has been updated to work with PostgreSQL 10+.**
+
 Overview
 --------
 
