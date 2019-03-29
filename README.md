@@ -157,7 +157,8 @@ Views
 
   sql_firewall_statements view shows the firewall rules and execution
   counter for each query.
-
+  
+```
     postgres=# select * from sql_firewall.sql_firewall_statements;
      userid |  queryid   |              query              | calls
     --------+------------+---------------------------------+-------
@@ -165,6 +166,7 @@ Views
     (1 row)
     
     postgres=#
+```
 
 * sql_firewall.sql_firewall_stat
 
@@ -176,7 +178,7 @@ Views
 
   "sql_error" shows number of prevented queries in the "enforcing"
   mode.
-
+```
     postgres=# select * from sql_firewall.sql_firewall_stat;
      sql_warning | sql_error
     -------------+-----------
@@ -184,13 +186,13 @@ Views
     (1 row)
     
     postgres=# 
-
+```
 
 Examples
 --------
 
 * Permissive mode
-
+```
     postgres=# select * from sql_firewall.sql_firewall_statements;
     WARNING:  Prohibited SQL statement
      userid |  queryid   |              query              | calls
@@ -222,9 +224,10 @@ Examples
     (5 rows)
   
     postgres=# 
+```
 
 * Enforcing mode
-
+```
     postgres=# select * from k1 where uid = 3;
      uid |   uname
     -----+-----------
@@ -234,7 +237,7 @@ Examples
     postgres=# select * from k1 where uid = 3 or 1 = 1;
     ERROR:  Prohibited SQL statement
     postgres=# 
-
+```
 
 Authors
 -------
